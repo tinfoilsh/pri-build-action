@@ -22,7 +22,7 @@ inputs:
     default: "0.0.6"
   ovmf-release:
     description: "OVMF release"
-    default: "0.0.4"
+    default: "0.0.2"
 
 runs:
   using: "composite"
