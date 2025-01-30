@@ -1,0 +1,75 @@
+name: Tinfoil Private Inference Build Action
+description: Builds, attests, and publishes a private inference deployment.
+
+author: Tinfoil
+
+inputs:
+  model:
+    description: "OLLAMA model"
+    required: true
+  domain:
+    description: "TLS domain"
+    required: true
+  github-token:
+    description: "GitHub token"
+    required: true
+
+  cpus:
+    description: "Number of vCPUs"
+    default: "16"
+  inference-image-release:
+    description: "Inference release"
+    default: "0.0.6"
+  ovmf-release:
+    description: "OVMF release"
+    default: "0.0.4"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Create deployment manifest
+      shell: bash
+      run: |
+        docker run --rm \
+          -v $(pwd)/output:/output \
+          -e INFERENCE_IMAGE_VERSION=${{ inputs.inference-image-release }} \
+          -e OVMF_VERSION=${{ inputs.ovmf-release }} \
+          -e CPUS=${{ inputs.cpus }} \
+          -e DOMAIN=${{ inputs.domain }} \
+          -e MODEL=${{ inputs.model }} \
+          ghcr.io/tinfoilanalytics/pri-build-action:latest
+
+    - name: Attest
+      uses: actions/attest@v1
+      id: attest
+      with:
+        subject-path: output/tinfoil-deployment.json
+        predicate-type: https://tinfoil.sh/predicate/snp-sev-guest/v1
+        predicate-path: output/tinfoil-deployment.json
+
+    - name: Generate release notes
+      id: generate-release-notes
+      shell: bash
+      run: |
+        RELEASE_NOTES=$(cat << EOF
+        Model: \`$(jq -r .config.model output/tinfoil-deployment.json)\`
+        Domain: \`$(jq -r .config.domain output/tinfoil-deployment.json)\`
+        SEV-SNP Measurement: \`$(jq -r .measurement output/tinfoil-deployment.json)\`
+        Inference Image Version: \`$(jq -r .deployment.inference_image output/tinfoil-deployment.json)\`
+        OVMF Version: \`$(jq -r .deployment.ovmf output/tinfoil-deployment.json)\`
+        Resources: $(jq -r .deployment.cpus output/tinfoil-deployment.json) vCPUs / $(jq -r .deployment.memory output/tinfoil-deployment.json)GB RAM
+        EOF
+        )
+        echo "release-notes<<EOF" >> "$GITHUB_OUTPUT"
+        echo "${RELEASE_NOTES}" >> "$GITHUB_OUTPUT"
+        echo "EOF" >> "$GITHUB_OUTPUT"
+
+    - name: Create release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          output/tinfoil-deployment.json
+        body: ${{ steps.generate-release-notes.outputs.release-notes }}
