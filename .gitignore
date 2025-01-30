@@ -1,0 +1,5 @@
+.idea/
+initrd
+kernel
+OVMF.fd
+output/
