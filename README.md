@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: tinfoilanalytics/pri-build-action@main
+      - uses: tinfoilanalytics/pri-build-action@v0.0.2
         with:
           model: deepseek-r1:70b
           domain: inference.delta.tinfoil.sh

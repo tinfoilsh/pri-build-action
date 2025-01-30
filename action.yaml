@@ -40,7 +40,7 @@ runs:
           -e CPUS=${{ inputs.cpus }} \
           -e DOMAIN=${{ inputs.domain }} \
           -e MODEL=${{ inputs.model }} \
-          ghcr.io/tinfoilanalytics/pri-build-action:latest
+          ghcr.io/tinfoilanalytics/pri-build-action:v0.0.2
 
     - name: Attest
       uses: actions/attest@v1
