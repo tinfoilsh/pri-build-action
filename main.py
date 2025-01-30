@@ -36,7 +36,7 @@ def fetch(url, file):
         shutil.copyfileobj(response, out_file)
 
 
-fetch(f"https://github.com/tinfoilanalytics/AMDSEV/releases/download/v{OVMF_VERSION}/OVMF.fd", "OVMF.fd")
+fetch(f"https://github.com/tinfoilanalytics/edk2/releases/download/v{OVMF_VERSION}/OVMF.fd", "OVMF.fd")
 
 url = f"https://github.com/tinfoilanalytics/cvmimage/releases/download/v{INFERENCE_IMAGE_VERSION}/tinfoil-inference-v{INFERENCE_IMAGE_VERSION}-manifest.json"
 manifest = json.loads(urllib.request.urlopen(url).read().decode('utf-8'))
