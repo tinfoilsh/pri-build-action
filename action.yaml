@@ -45,7 +45,7 @@ runs:
     - name: Hash deployment manifest
       shell: bash
       run: |
-        sha256sum output/tinfoil-deployment.json | cut -d ' ' -f 1 > output/tinfoil.hash
+        sudo sha256sum output/tinfoil-deployment.json | cut -d ' ' -f 1 | sudo tee output/tinfoil.hash
 
     - name: Attest
       uses: actions/attest@v1
