@@ -46,7 +46,7 @@ runs:
       shell: bash
       id: hash
       run: |
-        echo ::set-output name=stdout::sha256:$(sudo sha256sum output/tinfoil-deployment.json | cut -d ' ' -f 1 | sudo tee output/tinfoil.hash)
+        echo stdout=sha256:$(sudo sha256sum output/tinfoil-deployment.json | cut -d ' ' -f 1 | sudo tee output/tinfoil.hash) >> $GITHUB_OUTPUT
 
     - name: Attest
       uses: actions/attest@v1
