@@ -51,6 +51,7 @@ runs:
       uses: actions/attest@v1
       id: attest
       with:
+        subject-name: tinfoil-deployment.json
         subject-digest: output/tinfoil.hash
         predicate-type: https://tinfoil.sh/predicate/snp-sev-guest/v1
         predicate-path: output/tinfoil-deployment.json
