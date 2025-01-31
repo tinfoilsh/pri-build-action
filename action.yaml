@@ -71,4 +71,5 @@ runs:
       with:
         files: |
           output/tinfoil-deployment.json
+          output/tinfoil.hash
         body: ${{ steps.generate-release-notes.outputs.release-notes }}
