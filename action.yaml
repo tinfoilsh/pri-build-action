@@ -44,15 +44,16 @@ runs:
 
     - name: Hash deployment manifest
       shell: bash
+      id: hash
       run: |
-        sudo sha256sum output/tinfoil-deployment.json | cut -d ' ' -f 1 | sudo tee output/tinfoil.hash
+        echo sha256:$(sudo sha256sum output/tinfoil-deployment.json | cut -d ' ' -f 1 | sudo tee output/tinfoil.hash)
 
     - name: Attest
       uses: actions/attest@v1
       id: attest
       with:
         subject-name: tinfoil-deployment.json
-        subject-digest: output/tinfoil.hash
+        subject-digest: ${{ steps.hash.outputs.stdout }}
         predicate-type: https://tinfoil.sh/predicate/snp-sev-guest/v1
         predicate-path: output/tinfoil-deployment.json
 
