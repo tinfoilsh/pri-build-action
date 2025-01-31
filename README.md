@@ -34,7 +34,7 @@ jobs:
 docker run --rm \
     -v $(pwd)/output:/output \
     -e INFERENCE_IMAGE_VERSION=0.0.6 \
-    -e OVMF_VERSION=0.0.4 \
+    -e OVMF_VERSION=0.0.2 \
     -e CPUS=16 \
     -e DOMAIN=six.delta.tinfoil.sh \
     -e MODEL=deepseek-r1:70b \

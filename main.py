@@ -74,5 +74,16 @@ deployment_cfg = {
 
 print(deployment_cfg)
 
+md = f"""Model: `{MODEL}`
+Domain: [{DOMAIN}](https://{DOMAIN}/.well-known/tinfoil-attestation)
+SEV-SNP Measurement: `{deployment_cfg['measurement']}`
+Inference Image Version: [`{INFERENCE_IMAGE_VERSION}`](https://github.com/tinfoilanalytics/cvmimage/releases/tag/v{INFERENCE_IMAGE_VERSION})
+OVMF Version: [`{OVMF_VERSION}`](https://github.com/tinfoilanalytics/edk2/releases/tag/v{OVMF_VERSION})
+Resources: {deployment_cfg['deployment']['cpus']} vCPUs / {deployment_cfg['deployment']['memory']}GB RAM
+"""
+
+with open("/output/release.md", "w") as f:
+    f.write(md)
+
 with open("/output/tinfoil-deployment.json", "w") as f:
     f.write(json.dumps(deployment_cfg, indent=4))
