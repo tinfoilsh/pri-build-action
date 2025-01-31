@@ -40,13 +40,18 @@ runs:
           -e CPUS=${{ inputs.cpus }} \
           -e DOMAIN=${{ inputs.domain }} \
           -e MODEL=${{ inputs.model }} \
-          ghcr.io/tinfoilanalytics/pri-build-action:0.0.3
+          ghcr.io/tinfoilanalytics/pri-build-action:0.0.4
+
+    - name: Hash deployment manifest
+      shell: bash
+      run: |
+        sha256sum output/tinfoil-deployment.json | cut -d ' ' -f 1 > output/tinfoil.hash
 
     - name: Attest
       uses: actions/attest@v1
       id: attest
       with:
-        subject-path: output/tinfoil-deployment.json
+        subject-digest: output/tinfoil.hash
         predicate-type: https://tinfoil.sh/predicate/snp-sev-guest/v1
         predicate-path: output/tinfoil-deployment.json
 
@@ -54,15 +59,7 @@ runs:
       id: generate-release-notes
       shell: bash
       run: |
-        RELEASE_NOTES=$(cat << EOF
-        Model: \`$(jq -r .config.model output/tinfoil-deployment.json)\`
-        Domain: \`$(jq -r .config.domain output/tinfoil-deployment.json)\`
-        SEV-SNP Measurement: \`$(jq -r .measurement output/tinfoil-deployment.json)\`
-        Inference Image Version: \`$(jq -r .deployment.inference_image output/tinfoil-deployment.json)\`
-        OVMF Version: \`$(jq -r .deployment.ovmf output/tinfoil-deployment.json)\`
-        Resources: $(jq -r .deployment.cpus output/tinfoil-deployment.json) vCPUs / $(jq -r .deployment.memory output/tinfoil-deployment.json)GB RAM
-        EOF
-        )
+        RELEASE_NOTES=$(cat output/release.md)
         echo "release-notes<<EOF" >> "$GITHUB_OUTPUT"
         echo "${RELEASE_NOTES}" >> "$GITHUB_OUTPUT"
         echo "EOF" >> "$GITHUB_OUTPUT"
