@@ -6,14 +6,15 @@ import subprocess
 
 from util import sha256sum, fetch
 
+gpus = ["21:00.0"]
+port = 8444
+
 deployment_file = sys.argv[1]
 deployment = json.load(open(deployment_file))
 
 cvm_version = deployment["config"]["cvm-version"]
 cpus = deployment["config"]["cpus"]
 memory = deployment["config"]["memory"]
-gpus = ["21:00.0"]
-port = 8444
 roothash = deployment["hashes"]["root"]
 
 initrd_file = f"tinfoil-inference-v{cvm_version}.initrd"
