@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-import sys
 import json
 import subprocess
+import sys
 
 from util import sha256sum, fetch
 
@@ -19,9 +19,11 @@ roothash = deployment["hashes"]["root"]
 
 initrd_file = f"tinfoil-inference-v{cvm_version}.initrd"
 kernel_file = f"tinfoil-inference-v{cvm_version}.vmlinuz"
+disk_file = f"tinfoil-inference-v{cvm_version}.raw"
 
 fetch(f"https://images.tinfoil.sh/cvm/tinfoil-inference-v{cvm_version}.vmlinuz", kernel_file)
 fetch(f"https://images.tinfoil.sh/cvm/tinfoil-inference-v{cvm_version}.initrd", initrd_file)
+fetch(f"https://images.tinfoil.sh/cvm/tinfoil-inference-v{cvm_version}.raw", disk_file)
 
 if deployment["hashes"]["initrd"] != sha256sum(initrd_file):
     raise Exception("Invalid initrd hash")
@@ -66,7 +68,7 @@ args = [
 ]
 
 # Disks
-for i, file in enumerate([f"tinfoil-inference-v{cvm_version}.raw", "config.yml", *model_disks]):
+for i, file in enumerate([disk_file, "config.yml", *model_disks]):
     args.extend([
         "-drive", f"file={file},if=none,id=disk{i},format=raw,readonly=on",
         "-device", f"virtio-scsi-pci,id=scsi{i},disable-legacy=on,iommu_platform=true",
