@@ -4,6 +4,9 @@ description: Builds, attests, and publishes a private inference deployment.
 author: Tinfoil
 
 inputs:
+  config-file:
+    description: "Path to the Tinfoil config file"
+    required: true
   github-token:
     description: "GitHub token"
     required: true
@@ -19,8 +22,8 @@ runs:
       run: |
         docker run --rm \
           -v $(pwd)/output:/output \
-          -v /tinfoil-config.yml:/config.yml \
-          ghcr.io/tinfoilanalytics/pri-build-action:0.1.0
+          -v ${{ inputs.config-path }}:/config.yml \
+        ghcr.io/tinfoilanalytics/pri-build-action:0.1.0
 
     - name: Hash deployment manifest
       shell: bash
