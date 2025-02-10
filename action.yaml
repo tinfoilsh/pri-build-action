@@ -4,25 +4,9 @@ description: Builds, attests, and publishes a private inference deployment.
 author: Tinfoil
 
 inputs:
-  model:
-    description: "OLLAMA model"
-    required: true
-  domain:
-    description: "TLS domain"
-    required: true
   github-token:
     description: "GitHub token"
     required: true
-
-  cpus:
-    description: "Number of vCPUs"
-    default: "16"
-  inference-image-release:
-    description: "Inference release"
-    default: "0.0.6"
-  ovmf-release:
-    description: "OVMF release"
-    default: "0.0.2"
 
 runs:
   using: "composite"
@@ -35,12 +19,8 @@ runs:
       run: |
         docker run --rm \
           -v $(pwd)/output:/output \
-          -e INFERENCE_IMAGE_VERSION=${{ inputs.inference-image-release }} \
-          -e OVMF_VERSION=${{ inputs.ovmf-release }} \
-          -e CPUS=${{ inputs.cpus }} \
-          -e DOMAIN=${{ inputs.domain }} \
-          -e MODEL=${{ inputs.model }} \
-          ghcr.io/tinfoilanalytics/pri-build-action:0.0.4
+          -v /tinfoil-config.yml:/config.yml \
+          ghcr.io/tinfoilanalytics/pri-build-action:0.1.0
 
     - name: Hash deployment manifest
       shell: bash

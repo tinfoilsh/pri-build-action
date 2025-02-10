@@ -4,10 +4,10 @@ WORKDIR /app
 
 RUN python -m venv /opt/venv
 
-RUN pip install --no-cache-dir sev-snp-measure
+RUN pip install --no-cache-dir sev-snp-measure pyyaml
 
-COPY main.py /app.py
+COPY *.py /
 
 RUN mkdir -p /output
 
-ENTRYPOINT ["python", "/app.py"]
+ENTRYPOINT ["python", "/measure.py"]

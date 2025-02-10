@@ -1,0 +1,95 @@
+#!/usr/bin/env python3
+
+import sys
+import json
+import subprocess
+
+from util import sha256sum, fetch
+
+deployment_file = sys.argv[1]
+deployment = json.load(open(deployment_file))
+
+cvm_version = deployment["config"]["cvm-version"]
+cpus = deployment["config"]["cpus"]
+memory = deployment["config"]["memory"]
+gpus = ["21:00.0"]
+port = 8444
+roothash = deployment["hashes"]["root"]
+
+initrd_file = f"tinfoil-inference-v{cvm_version}.initrd"
+kernel_file = f"tinfoil-inference-v{cvm_version}.vmlinuz"
+
+fetch(f"https://images.tinfoil.sh/cvm/tinfoil-inference-v{cvm_version}.vmlinuz", kernel_file)
+fetch(f"https://images.tinfoil.sh/cvm/tinfoil-inference-v{cvm_version}.initrd", initrd_file)
+
+if deployment["hashes"]["initrd"] != sha256sum(initrd_file):
+    raise Exception("Invalid initrd hash")
+else:
+    print("Initrd hash valid")
+
+if deployment["hashes"]["kernel"] != sha256sum(kernel_file):
+    raise Exception("Invalid kernel hash")
+else:
+    print("Kernel hash valid")
+
+model_disks = []
+if "models" in deployment["config"]:
+    for model in deployment["config"]["models"]:
+        model_disks.append(f"/home/ubuntu/models/{model['id'].replace(':', '-')}.mpk")
+
+args = [
+    "sudo", "/home/ubuntu/qemu/build/qemu-system-x86_64",
+    "-enable-kvm",
+    "-cpu", "EPYC-v4",
+    "-machine", "q35",
+    "-smp", f"{cpus},maxcpus={cpus}",
+    "-m", f"{memory}M",
+    "-no-reboot",
+
+    # Memory Encryption
+    "-machine", "memory-encryption=sev0,vmport=off",
+    "-object", f"memory-backend-memfd,id=ram1,size={memory}M,share=true,prealloc=false",
+    "-machine", "memory-backend=ram1",
+    "-object", "sev-snp-guest,id=sev0,policy=0x30000,cbitpos=51,reduced-phys-bits=5,kernel-hashes=on",
+
+    "-bios", "/home/ubuntu/cvmimage/OVMF.fd",
+    "-kernel", kernel_file,
+    "-initrd", initrd_file,
+    "-append", deployment["cmdline"],
+
+    # Network
+    "-net", "nic,model=e1000", "-net", f"user,hostfwd=tcp::{port}-:443",
+
+    # Console
+    "-nographic"
+]
+
+# Disks
+for i, file in enumerate([f"tinfoil-inference-v{cvm_version}.raw", "config.yml", *model_disks]):
+    args.extend([
+        "-drive", f"file={file},if=none,id=disk{i},format=raw,readonly=on",
+        "-device", f"virtio-scsi-pci,id=scsi{i},disable-legacy=on,iommu_platform=true",
+        "-device", f"scsi-hd,drive=disk{i}",
+    ])
+
+if len(gpus) > 0:
+    args.extend(["-fw_cfg", f"name=opt/ovmf/X-PciMmio64Mb,string=262144"])
+
+for i, gpu in enumerate(gpus):
+    subprocess.run([
+        "sudo",
+        "python3",
+        "/shared/nvtrust/host_tools/python/gpu-admin-tools/nvidia_gpu_tools.py",
+        "--gpu-bdf", gpu,
+        "--set-cc-mode=on",
+        "--reset-after-cc-mode-switch",
+    ])
+
+    args.extend([
+        "-device", f"pcie-root-port,id=pci.{i + 1},bus=pcie.0,slot={i + 1}",
+        "-device", f"vfio-pci,host={gpu},bus=pci.{i + 1}"
+    ])
+
+print("Starting QEMU")
+print(args)
+subprocess.run(args)
