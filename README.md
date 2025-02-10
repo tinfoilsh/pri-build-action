@@ -23,5 +23,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: tinfoilanalytics/pri-build-action@main
         with:
+          config-file: ${{ github.workspace }}/tinfoil-config.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
