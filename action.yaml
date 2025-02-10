@@ -22,7 +22,7 @@ runs:
       run: |
         docker run --rm \
           -v $(pwd)/output:/output \
-          -v ${{ inputs.config-path }}:/config.yml \
+          -v ${{ inputs.config-file }}:/config.yml \
         ghcr.io/tinfoilanalytics/pri-build-action:0.1.0
 
     - name: Hash deployment manifest
