@@ -15,9 +15,9 @@ OVMF_VERSION = config["ovmf-version"]
 CPUS = config["cpus"]
 MEMORY = config["memory"]
 
-fetch(f"https://github.com/tinfoilanalytics/edk2/releases/download/v{OVMF_VERSION}/OVMF.fd", "OVMF.fd")
+fetch(f"https://github.com/tinfoilsh/edk2/releases/download/v{OVMF_VERSION}/OVMF.fd", "OVMF.fd")
 
-url = f"https://github.com/tinfoilanalytics/cvmimage/releases/download/v{CVM_VERSION}/tinfoil-inference-v{CVM_VERSION}-manifest.json"
+url = f"https://github.com/tinfoilsh/cvmimage/releases/download/v{CVM_VERSION}/tinfoil-inference-v{CVM_VERSION}-manifest.json"
 manifest = json.loads(urllib.request.urlopen(url).read().decode('utf-8'))
 
 fetch(f"https://images.tinfoil.sh/cvm/tinfoil-inference-v{CVM_VERSION}.vmlinuz", "kernel")
@@ -41,8 +41,8 @@ deployment_cfg = {
 print(deployment_cfg)
 
 md = f"""SEV-SNP Measurement: `{deployment_cfg['measurement']}`
-Inference Image Version: [`{CVM_VERSION}`](https://github.com/tinfoilanalytics/cvmimage/releases/tag/v{CVM_VERSION})
-OVMF Version: [`{OVMF_VERSION}`](https://github.com/tinfoilanalytics/edk2/releases/tag/v{OVMF_VERSION})
+Inference Image Version: [`{CVM_VERSION}`](https://github.com/tinfoilsh/cvmimage/releases/tag/v{CVM_VERSION})
+OVMF Version: [`{OVMF_VERSION}`](https://github.com/tinfoilsh/edk2/releases/tag/v{OVMF_VERSION})
 """
 
 with open("/output/release.md", "w") as f:
