@@ -1,3 +1,4 @@
+import base64
 import json
 import urllib.request
 
@@ -8,6 +9,8 @@ from sevsnpmeasure.vmm_types import VMMType
 
 from util import sha256sum, fetch
 
+CACHE_DIR = "/cache"
+
 config = yaml.safe_load(open("/config.yml", "r"))
 
 CVM_VERSION = config["cvm-version"]
@@ -15,19 +18,19 @@ OVMF_VERSION = config["ovmf-version"]
 CPUS = config["cpus"]
 MEMORY = config["memory"]
 
-fetch(f"https://github.com/tinfoilsh/edk2/releases/download/v{OVMF_VERSION}/OVMF.fd", "OVMF.fd")
-
 url = f"https://github.com/tinfoilsh/cvmimage/releases/download/v{CVM_VERSION}/tinfoil-inference-v{CVM_VERSION}-manifest.json"
 manifest = json.loads(urllib.request.urlopen(url).read().decode('utf-8'))
 
-fetch(f"https://images.tinfoil.sh/cvm/tinfoil-inference-v{CVM_VERSION}.vmlinuz", "kernel")
-fetch(f"https://images.tinfoil.sh/cvm/tinfoil-inference-v{CVM_VERSION}.initrd", "initrd")
+ovmf_file = fetch(f"https://github.com/tinfoilsh/edk2/releases/download/v{OVMF_VERSION}/OVMF.fd", CACHE_DIR)
+kernel_file = fetch(f"https://images.tinfoil.sh/cvm/tinfoil-inference-v{CVM_VERSION}.vmlinuz", CACHE_DIR)
+initrd_file = fetch(f"https://images.tinfoil.sh/cvm/tinfoil-inference-v{CVM_VERSION}.initrd", CACHE_DIR)
 
 cmdline = f"readonly=on console=ttyS0 earlyprintk=serial root=/dev/mapper/root roothash={manifest['root']} tinfoil-config-hash={sha256sum('/config.yml')}"
 
 print("Measuring...")
 ld = guest.snp_calc_launch_digest(
-    CPUS, CPU_SIGS["EPYC-v4"], "OVMF.fd", "kernel", "initrd", cmdline,
+    CPUS, CPU_SIGS["EPYC-v4"],
+    ovmf_file, kernel_file, initrd_file, cmdline,
     0x1, "", VMMType.QEMU, dump_vmsa=False,
 )
 
@@ -35,7 +38,7 @@ deployment_cfg = {
     "measurement": ld.hex(),
     "cmdline": cmdline,
     "hashes": manifest,
-    "config": config,
+    "config": base64.b64encode(open("/config.yml", "rb").read()).decode("utf-8"),
 }
 
 print(deployment_cfg)

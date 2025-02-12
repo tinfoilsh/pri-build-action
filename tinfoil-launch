@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-
+import base64
 import json
 import subprocess
 import sys
+
+import yaml
 
 from util import sha256sum, fetch
 
@@ -12,18 +14,20 @@ port = 8444
 deployment_file = sys.argv[1]
 deployment = json.load(open(deployment_file))
 
-cvm_version = deployment["config"]["cvm-version"]
-cpus = deployment["config"]["cpus"]
-memory = deployment["config"]["memory"]
+config_doc = base64.b64decode(deployment["config"]).decode("utf-8")
+with open("deployment-config.yml", "w") as dep_config_file:
+    dep_config_file.write(config_doc)
+
+config = yaml.safe_load(config_doc)
+cvm_version = config["cvm-version"]
+cpus = config["cpus"]
+memory = config["memory"]
 roothash = deployment["hashes"]["root"]
 
-initrd_file = f"tinfoil-inference-v{cvm_version}.initrd"
-kernel_file = f"tinfoil-inference-v{cvm_version}.vmlinuz"
-disk_file = f"tinfoil-inference-v{cvm_version}.raw"
-
-fetch(f"https://images.tinfoil.sh/cvm/tinfoil-inference-v{cvm_version}.vmlinuz", kernel_file)
-fetch(f"https://images.tinfoil.sh/cvm/tinfoil-inference-v{cvm_version}.initrd", initrd_file)
-fetch(f"https://images.tinfoil.sh/cvm/tinfoil-inference-v{cvm_version}.raw", disk_file)
+cache_dir = "cache"
+kernel_file = fetch(f"https://images.tinfoil.sh/cvm/tinfoil-inference-v{cvm_version}.vmlinuz", cache_dir)
+initrd_file = fetch(f"https://images.tinfoil.sh/cvm/tinfoil-inference-v{cvm_version}.initrd", cache_dir)
+disk_file = fetch(f"https://images.tinfoil.sh/cvm/tinfoil-inference-v{cvm_version}.raw", cache_dir)
 
 if deployment["hashes"]["initrd"] != sha256sum(initrd_file):
     raise Exception("Invalid initrd hash")
