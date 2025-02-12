@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import base64
 import json
+import re
 import subprocess
 import sys
 
@@ -14,9 +15,16 @@ port = 8444
 deployment_file = sys.argv[1]
 deployment = json.load(open(deployment_file))
 
+cache_dir = "cache"
+
+config_hash = re.search(r'tinfoil-config-hash=([0-9a-f]+)', deployment["cmdline"]).group(1)
 config_doc = base64.b64decode(deployment["config"]).decode("utf-8")
-with open("deployment-config.yml", "w") as dep_config_file:
+config_file = f"{cache_dir}/config-{config_hash}.yml"
+with open(config_file, "w") as dep_config_file:
     dep_config_file.write(config_doc)
+
+if sha256sum(config_file) != config_hash:
+    raise Exception("Build error: config hash mismatch")
 
 config = yaml.safe_load(config_doc)
 cvm_version = config["cvm-version"]
@@ -24,7 +32,9 @@ cpus = config["cpus"]
 memory = config["memory"]
 roothash = deployment["hashes"]["root"]
 
-cache_dir = "cache"
+print(f"Preparing CVM v{cvm_version} with {cpus} CPUs and {memory}MB of memory")
+print(f"Config hash: {config_hash}")
+
 kernel_file = fetch(f"https://images.tinfoil.sh/cvm/tinfoil-inference-v{cvm_version}.vmlinuz", cache_dir)
 initrd_file = fetch(f"https://images.tinfoil.sh/cvm/tinfoil-inference-v{cvm_version}.initrd", cache_dir)
 disk_file = fetch(f"https://images.tinfoil.sh/cvm/tinfoil-inference-v{cvm_version}.raw", cache_dir)
@@ -72,7 +82,7 @@ args = [
 ]
 
 # Disks
-for i, file in enumerate([disk_file, "config.yml", *model_disks]):
+for i, file in enumerate([disk_file, config_file, *model_disks]):
     args.extend([
         "-drive", f"file={file},if=none,id=disk{i},format=raw,readonly=on",
         "-device", f"virtio-scsi-pci,id=scsi{i},disable-legacy=on,iommu_platform=true",
