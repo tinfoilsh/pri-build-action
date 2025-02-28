@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import base64
 import json
 import re
@@ -9,10 +10,13 @@ import yaml
 
 from util import sha256sum, fetch
 
-gpus = ["21:00.0"]
-port = 8444
+parser = argparse.ArgumentParser(description='Launch Tinfoil CVM')
+parser.add_argument('--gpus', nargs='+', help='List of GPU PCIe addresses to pass through (e.g., "21:00.0")')
+parser.add_argument('--port', type=int, default=8444, help='Port to listen on for HTTP requests')
+parser.add_argument('deployment_file', help='Path to deployment JSON file')
+args = parser.parse_args()
 
-deployment_file = sys.argv[1]
+deployment_file = args.deployment_file
 deployment = json.load(open(deployment_file))
 
 cache_dir = "cache"
@@ -42,19 +46,21 @@ disk_file = fetch(f"https://images.tinfoil.sh/cvm/tinfoil-inference-v{cvm_versio
 if deployment["hashes"]["initrd"] != sha256sum(initrd_file):
     raise Exception("Invalid initrd hash")
 else:
-    print("Initrd hash valid")
+    print(f"Initrd hash valid: {deployment['hashes']['initrd']}")
 
 if deployment["hashes"]["kernel"] != sha256sum(kernel_file):
     raise Exception("Invalid kernel hash")
 else:
-    print("Kernel hash valid")
+    print(f"Kernel hash valid: {deployment['hashes']['kernel']}")
+
+# TODO: Pack model if not found
 
 model_disks = []
 if "models" in deployment["config"]:
     for model in deployment["config"]["models"]:
         model_disks.append(f"/home/ubuntu/models/{model['id'].replace(':', '-')}.mpk")
 
-args = [
+qemu_args = [
     "sudo", "/home/ubuntu/qemu/build/qemu-system-x86_64",
     "-enable-kvm",
     "-cpu", "EPYC-v4",
@@ -75,7 +81,7 @@ args = [
     "-append", deployment["cmdline"],
 
     # Network
-    "-net", "nic,model=e1000", "-net", f"user,hostfwd=tcp::{port}-:443",
+    "-net", "nic,model=e1000", "-net", f"user,hostfwd=tcp::{args.port}-:443",
 
     # Console
     "-nographic"
@@ -83,30 +89,30 @@ args = [
 
 # Disks
 for i, file in enumerate([disk_file, config_file, *model_disks]):
-    args.extend([
+    qemu_args.extend([
         "-drive", f"file={file},if=none,id=disk{i},format=raw,readonly=on",
         "-device", f"virtio-scsi-pci,id=scsi{i},disable-legacy=on,iommu_platform=true",
         "-device", f"scsi-hd,drive=disk{i}",
     ])
 
-if len(gpus) > 0:
-    args.extend(["-fw_cfg", f"name=opt/ovmf/X-PciMmio64Mb,string=262144"])
+if args.gpus:
+    qemu_args.extend(["-fw_cfg", f"name=opt/ovmf/X-PciMmio64Mb,string=262144"])
 
-for i, gpu in enumerate(gpus):
-    subprocess.run([
-        "sudo",
-        "python3",
-        "/shared/nvtrust/host_tools/python/gpu-admin-tools/nvidia_gpu_tools.py",
-        "--gpu-bdf", gpu,
-        "--set-cc-mode=on",
-        "--reset-after-cc-mode-switch",
-    ])
+    for i, gpu in enumerate(args.gpus):
+        subprocess.run([
+            "sudo",
+            "python3",
+            "/shared/nvtrust/host_tools/python/gpu-admin-tools/nvidia_gpu_tools.py",
+            "--gpu-bdf", gpu,
+            "--set-cc-mode=on",
+            "--reset-after-cc-mode-switch",
+        ])
 
-    args.extend([
-        "-device", f"pcie-root-port,id=pci.{i + 1},bus=pcie.0,slot={i + 1}",
-        "-device", f"vfio-pci,host={gpu},bus=pci.{i + 1}"
-    ])
+        qemu_args.extend([
+            "-device", f"pcie-root-port,id=pci.{i + 1},bus=pcie.0,slot={i + 1}",
+            "-device", f"vfio-pci,host={gpu},bus=pci.{i + 1}"
+        ])
 
 print("Starting QEMU")
-print(args)
-subprocess.run(args)
+print(qemu_args)
+# subprocess.run(qemu_args)
