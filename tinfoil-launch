@@ -13,8 +13,8 @@ from util import sha256sum, fetch
 parser = argparse.ArgumentParser(description='Launch Tinfoil CVM')
 parser.add_argument('--gpus', nargs='+', help='List of GPU PCIe addresses to pass through (e.g., "21:00.0")')
 parser.add_argument('--port', type=int, default=8444, help='Port to listen on for HTTP requests')
-parser.add_argument('deployment_file', help='Path to deployment JSON file')
 parser.add_argument('--debug', action='store_true', help='Enable debug mode')
+parser.add_argument('deployment_file', help='Path to deployment JSON file')
 args = parser.parse_args()
 
 deployment_file = args.deployment_file
@@ -24,6 +24,7 @@ cache_dir = "cache"
 
 cmdline = deployment["cmdline"]
 if args.debug:
+    print("WARNING: Debug mode enabled. Root login is enabled and measurements will not match")
     cmdline += " tinfoil-debug=on"
 
 config_hash = re.search(r'tinfoil-config-hash=([0-9a-f]+)', cmdline).group(1)
@@ -59,8 +60,8 @@ else:
     print(f"Kernel hash valid: {deployment['hashes']['kernel']}")
 
 model_disks = []
-if "models" in deployment["config"]:
-    for model in deployment["config"]["models"]:
+if "models" in config:
+    for model in config["models"]:
         model_disks.append(f"/home/ubuntu/models/{model['id'].replace(':', '-')}.mpk")
 
 qemu_args = [
