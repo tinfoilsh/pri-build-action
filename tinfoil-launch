@@ -14,6 +14,7 @@ parser = argparse.ArgumentParser(description='Launch Tinfoil CVM')
 parser.add_argument('--gpus', nargs='+', help='List of GPU PCIe addresses to pass through (e.g., "21:00.0")')
 parser.add_argument('--port', type=int, default=8444, help='Port to listen on for HTTP requests')
 parser.add_argument('deployment_file', help='Path to deployment JSON file')
+parser.add_argument('--debug', action='store_true', help='Enable debug mode')
 args = parser.parse_args()
 
 deployment_file = args.deployment_file
@@ -21,7 +22,11 @@ deployment = json.load(open(deployment_file))
 
 cache_dir = "cache"
 
-config_hash = re.search(r'tinfoil-config-hash=([0-9a-f]+)', deployment["cmdline"]).group(1)
+cmdline = deployment["cmdline"]
+if args.debug:
+    cmdline += " tinfoil-debug=on"
+
+config_hash = re.search(r'tinfoil-config-hash=([0-9a-f]+)', cmdline).group(1)
 config_doc = base64.b64decode(deployment["config"]).decode("utf-8")
 config_file = f"{cache_dir}/config-{config_hash}.yml"
 with open(config_file, "w") as dep_config_file:
@@ -53,8 +58,6 @@ if deployment["hashes"]["kernel"] != sha256sum(kernel_file):
 else:
     print(f"Kernel hash valid: {deployment['hashes']['kernel']}")
 
-# TODO: Pack model if not found
-
 model_disks = []
 if "models" in deployment["config"]:
     for model in deployment["config"]["models"]:
@@ -78,7 +81,7 @@ qemu_args = [
     "-bios", "/home/ubuntu/cvmimage/OVMF.fd",
     "-kernel", kernel_file,
     "-initrd", initrd_file,
-    "-append", deployment["cmdline"],
+    "-append", cmdline,
 
     # Network
     "-net", "nic,model=e1000", "-net", f"user,hostfwd=tcp::{args.port}-:443",
@@ -115,4 +118,4 @@ if args.gpus:
 
 print("Starting QEMU")
 print(qemu_args)
-# subprocess.run(qemu_args)
+subprocess.run(qemu_args)
