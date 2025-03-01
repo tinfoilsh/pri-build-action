@@ -37,7 +37,7 @@ runs:
       with:
         subject-name: tinfoil-deployment.json
         subject-digest: ${{ steps.hash.outputs.stdout }}
-        predicate-type: https://tinfoil.sh/predicate/snp-sev-guest/v1
+        predicate-type: https://tinfoil.sh/predicate/sev-snp-guest/v1
         predicate-path: output/tinfoil-deployment.json
 
     - name: Generate release notes
