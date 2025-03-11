@@ -4,7 +4,7 @@ WORKDIR /app
 
 RUN python -m venv /opt/venv
 
-RUN pip install --no-cache-dir sev-snp-measure pyyaml
+RUN pip install --no-cache-dir sev-snp-measure pyyaml requests
 
 COPY *.py /
 

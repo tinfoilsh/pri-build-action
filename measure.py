@@ -1,7 +1,6 @@
 import base64
 import json
-import urllib.request
-
+import requests
 import yaml
 from sevsnpmeasure import guest
 from sevsnpmeasure.vcpu_types import CPU_SIGS
@@ -19,7 +18,7 @@ CPUS = config["cpus"]
 MEMORY = config["memory"]
 
 url = f"https://github.com/tinfoilsh/cvmimage/releases/download/v{CVM_VERSION}/tinfoil-inference-v{CVM_VERSION}-manifest.json"
-manifest = json.loads(urllib.request.urlopen(url).read().decode('utf-8'))
+manifest = requests.get(url).json()
 
 ovmf_file = fetch(f"https://github.com/tinfoilsh/edk2/releases/download/v{OVMF_VERSION}/OVMF.fd", CACHE_DIR)
 kernel_file = fetch(f"https://images.tinfoil.sh/cvm/tinfoil-inference-v{CVM_VERSION}.vmlinuz", CACHE_DIR)

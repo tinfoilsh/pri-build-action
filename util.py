@@ -1,7 +1,7 @@
 import hashlib
 import os
 import shutil
-import urllib.request
+import requests
 
 
 def sha256sum(filename: str) -> str:
@@ -35,8 +35,9 @@ def fetch(url: str, cache_dir: str) -> str:
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
-    request = urllib.request.Request(url, headers=headers)
-    with urllib.request.urlopen(request) as response, open(file_path, 'wb') as out_file:
-        shutil.copyfileobj(response, out_file)
+    response = requests.get(url, headers=headers, stream=True)
+    response.raise_for_status()
+    with open(file_path, 'wb') as out_file:
+        shutil.copyfileobj(response.raw, out_file)
 
     return file_path
