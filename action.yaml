@@ -7,6 +7,9 @@ inputs:
   config-file:
     description: "Path to the Tinfoil config file"
     required: true
+  external-config-file:
+    description: "Path to the Tinfoil external config file"
+    required: false
   github-token:
     description: "GitHub token"
     required: true
@@ -23,7 +26,8 @@ runs:
         docker run --rm \
           -v $(pwd)/output:/output \
           -v ${{ inputs.config-file }}:/config.yml \
-        ghcr.io/tinfoilsh/pri-build-action:0.1.2
+          -v ${{ inputs.external-config-file }}:/external-config.yml \
+        ghcr.io/tinfoilsh/pri-build-action:0.2.0
 
     - name: Hash deployment manifest
       shell: bash

@@ -11,6 +11,7 @@ from util import sha256sum, fetch
 CACHE_DIR = "/cache"
 
 config = yaml.safe_load(open("/config.yml", "r"))
+external_config = yaml.safe_load(open("/external-config.yml", "r"))
 
 CVM_VERSION = config["cvm-version"]
 OVMF_VERSION = config["ovmf-version"]
@@ -38,6 +39,7 @@ deployment_cfg = {
     "cmdline": cmdline,
     "hashes": manifest,
     "config": base64.b64encode(open("/config.yml", "rb").read()).decode("utf-8"),
+    "external_config": external_config
 }
 
 print(deployment_cfg)
