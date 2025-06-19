@@ -48,6 +48,7 @@ runs:
         echo "release-notes<<EOF" >> "$GITHUB_OUTPUT"
         echo "${RELEASE_NOTES}" >> "$GITHUB_OUTPUT"
         echo "Digest: \`$(cat output/tinfoil.hash)\`" >> "$GITHUB_OUTPUT"
+        echo "Sigstore Link: ${{ steps.attest.outputs.bundle-url }}" >> "$GITHUB_OUTPUT"
         echo "EOF" >> "$GITHUB_OUTPUT"
 
     - name: Create release
