@@ -23,7 +23,7 @@ runs:
         docker run --rm \
           -v $(pwd)/output:/output \
           -v ${{ inputs.config-file }}:/config.yml \
-        ghcr.io/tinfoilsh/pri-build-action:0.3.0
+        ghcr.io/tinfoilsh/pri-build-action:0.4.0
 
     - name: Hash deployment manifest
       shell: bash
@@ -37,7 +37,7 @@ runs:
       with:
         subject-name: tinfoil-deployment.json
         subject-digest: ${{ steps.hash.outputs.stdout }}
-        predicate-type: https://tinfoil.sh/predicate/sev-snp-guest/v1
+        predicate-type: https://tinfoil.sh/predicate/snp-tdx-multiplatform/v1
         predicate-path: output/tinfoil-deployment.json
 
     - name: Generate release notes

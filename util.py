@@ -17,9 +17,7 @@ def sha256sum(filename: str) -> str:
 def fetch(url: str, cache_dir: str) -> str:
     file_path = os.path.join(
         cache_dir,
-        url.
-        lstrip("https://").
-        lstrip("http://")
+        url.split("/")[-1]
     )
 
     if os.path.exists(file_path):
