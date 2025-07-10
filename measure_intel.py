@@ -13,10 +13,7 @@ def measure_intel(
             "rsdp": "",
             "table_loader": "",
             "boot_order": "",
-            "boot_0000": "",
-            "boot_0001": "",
-            "boot_0006": "",
-            "boot_0007": ""
+            "path_boot_xxxx": ""
         },
         "direct": {
             "kernel": kernel_file,
