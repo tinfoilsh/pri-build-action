@@ -23,7 +23,7 @@ runs:
         docker run --rm \
           -v $(pwd)/output:/output \
           -v ${{ inputs.config-file }}:/config.yml \
-        ghcr.io/tinfoilsh/pri-build-action:0.5.1
+        ghcr.io/tinfoilsh/pri-build-action:0.5.2
 
     - name: Hash deployment manifest
       shell: bash
