@@ -23,7 +23,7 @@ runs:
         docker run --rm \
           -v $(pwd)/output:/output \
           -v ${{ inputs.config-file }}:/config.yml \
-        ghcr.io/tinfoilsh/pri-build-action:0.5.2
+        ghcr.io/tinfoilsh/pri-build-action:0.5.3
 
     - name: Hash deployment manifest
       shell: bash
@@ -54,6 +54,7 @@ runs:
     - name: Create release
       uses: softprops/action-gh-release@v2
       with:
+        prerelease: true
         files: |
           output/tinfoil-deployment.json
           output/tinfoil.hash
