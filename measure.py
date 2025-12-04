@@ -24,7 +24,7 @@ initrd_file = fetch(f"https://images.tinfoil.sh/cvm/tinfoil-inference-v{CVM_VERS
 
 amd_ovmf = fetch(f"https://github.com/tinfoilsh/edk2/releases/download/v0.0.2/OVMF.fd", CACHE_DIR)
 
-cmdline = f"readonly=on console=ttyS0 pci=realloc,nocrs modprobe.blacklist=nouveau nouveau.modeset=0 earlyprintk=serial root=/dev/mapper/root roothash={manifest['root']} tinfoil-config-hash={sha256sum('/config.yml')}"
+cmdline = f"readonly=on pci=realloc,nocrs modprobe.blacklist=nouveau nouveau.modeset=0 root=/dev/mapper/root roothash={manifest['root']} tinfoil-config-hash={sha256sum('/config.yml')}"
 
 print("Measuring...")
 
