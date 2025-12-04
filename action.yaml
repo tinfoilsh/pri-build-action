@@ -10,6 +10,10 @@ inputs:
   github-token:
     description: "GitHub token"
     required: true
+  prerelease:
+    description: "Whether to mark the GitHub release as a prerelease"
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -54,7 +58,7 @@ runs:
     - name: Create release
       uses: softprops/action-gh-release@v2
       with:
-        prerelease: true
+        prerelease: ${{ inputs.prerelease == 'true' }}
         files: |
           output/tinfoil-deployment.json
           output/tinfoil.hash
