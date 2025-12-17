@@ -27,6 +27,7 @@ runs:
         docker run --rm \
           -v $(pwd)/output:/output \
           -v ${{ inputs.config-file }}:/config.yml \
+          -e GH_TOKEN=${{ inputs.github-token }} \
         ghcr.io/tinfoilsh/pri-build-action@sha256:fe1249ece772dfce71df53fc874699ad7a0769bc9c224fabc3cb113fb4bc062f
 
     - name: Hash deployment manifest
