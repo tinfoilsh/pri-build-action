@@ -1,54 +1,23 @@
 import base64
 import json
+import os
+import subprocess
 import requests
 import yaml
 
-from cryptography.x509.oid import ObjectIdentifier
-from sigstore.verify import Verifier
-from sigstore.verify.policy import AllOf, OIDCIssuer, GitHubWorkflowRepository, Certificate, ExtensionNotFound
-from sigstore.models import Bundle
-from sigstore.errors import VerificationError
 
-RUNNER_ENVIRONMENT_OID = ObjectIdentifier("1.3.6.1.4.1.57264.1.11")
-OIDC_ISSUER = "https://token.actions.githubusercontent.com"
-
-def verify_attestation(attestations: list, repo: str) -> None:
-    """Find and verify an attestation matching the given repo and policy."""
-    verifier = Verifier.production()
-    policy = AllOf([
-        OIDCIssuer(OIDC_ISSUER),
-        GitHubWorkflowRepository(repo),
-        GitHubHostedRunner(),
-    ])
-
-    errors = []
-    for att in attestations:
-        try:
-            bundle = Bundle.from_json(json.dumps(att["bundle"]))
-            verifier.verify_dsse(bundle, policy)
-            return
-        except Exception as e:
-            errors.append(str(e))
-
-    raise VerificationError(f"No valid attestation found for {repo}: {errors}")
-
-
-class GitHubHostedRunner:
-    """Verifies the certificate's runner environment is github-hosted."""
-
-    def verify(self, cert: Certificate) -> None:
-        try:
-            ext = cert.extensions.get_extension_for_oid(RUNNER_ENVIRONMENT_OID).value
-            if b"github-hosted" not in ext.value:
-                raise VerificationError(
-                    f"Certificate's runner environment is not github-hosted "
-                    f"(got '{ext.value}')"
-                )
-        except ExtensionNotFound:
-            raise VerificationError(
-                f"Certificate does not contain runner environment "
-                f"({RUNNER_ENVIRONMENT_OID.dotted_string}) extension"
-            )
+def verify_attestation_gh(file_path: str, repo: str) -> None:
+    """Verify attestation using GitHub CLI, ensuring it was built on GitHub-hosted runners."""
+    result = subprocess.run(
+        ["gh", "attestation", "verify", file_path, "-R", repo, "--deny-self-hosted-runners"],
+        capture_output=True,
+        text=True
+    )
+    
+    if result.returncode != 0:
+        raise RuntimeError(f"Attestation verification failed for {file_path}: {result.stderr}")
+    
+    print(f"✓ Attestation verified: {file_path}")
 
 from measure_amd import measure_amd
 from measure_intel import measure_intel
@@ -79,12 +48,13 @@ manifest_response.raise_for_status()
 manifest_bytes = manifest_response.content
 manifest = json.loads(manifest_bytes)
 
-manifest_digest = sha256sum_bytes(manifest_bytes)
-attestation_url = f"https://api.github.com/repos/{CVMIMAGE_REPO}/attestations/sha256:{manifest_digest}"
-attestation_response = requests.get(attestation_url)
-attestation_response.raise_for_status()
+# Save manifest to verify attestation
+manifest_file_tdx = f"{CACHE_DIR}/manifest-tdx.json"
+os.makedirs(CACHE_DIR, exist_ok=True)
+with open(manifest_file_tdx, "wb") as f:
+    f.write(manifest_bytes)
 
-verify_attestation(attestation_response.json()["attestations"], CVMIMAGE_REPO)
+verify_attestation_gh(manifest_file_tdx, CVMIMAGE_REPO)
 print(f"Manifest attestation verified for {CVMIMAGE_REPO} (TDX)")
 
 kernel_file_tdx = fetch(f"https://images.tinfoil.sh/cvm/tinfoil-inference-v{CVM_VERSION}.vmlinuz", CACHE_DIR)
@@ -99,20 +69,6 @@ if initrd_hash_tdx != manifest["initrd"]:
     raise ValueError(f"TDX initrd hash mismatch: expected {manifest['initrd']}, got {initrd_hash_tdx}")
 
 # === AMD SNP: New cvmimage from tf-core ===
-manifest_snp_url = f"https://github.com/{TF_CORE_REPO}/releases/download/{CVMIMAGE_VERSION}/manifest.json"
-manifest_snp_response = requests.get(manifest_snp_url)
-manifest_snp_response.raise_for_status()
-manifest_snp_bytes = manifest_snp_response.content
-manifest_snp = json.loads(manifest_snp_bytes)
-
-manifest_snp_digest = sha256sum_bytes(manifest_snp_bytes)
-attestation_snp_url = f"https://api.github.com/repos/{TF_CORE_REPO}/attestations/sha256:{manifest_snp_digest}"
-attestation_snp_response = requests.get(attestation_snp_url)
-attestation_snp_response.raise_for_status()
-
-verify_attestation(attestation_snp_response.json()["attestations"], TF_CORE_REPO)
-print(f"Manifest attestation verified for {TF_CORE_REPO} (AMD SNP)")
-
 # Download kernel/initrd from R2 (uploaded by system-cvmimage workflow)
 kernel_file_snp = fetch("https://images.tinfoil.sh/cvm/tinfoilcvm.vmlinuz", CACHE_DIR)
 initrd_file_snp = fetch("https://images.tinfoil.sh/cvm/tinfoilcvm.initrd", CACHE_DIR)
@@ -120,6 +76,20 @@ initrd_file_snp = fetch("https://images.tinfoil.sh/cvm/tinfoilcvm.initrd", CACHE
 kernel_hash_snp = sha256sum(kernel_file_snp)
 initrd_hash_snp = sha256sum(initrd_file_snp)
 
+# Verify attestations for the actual artifacts directly using gh CLI
+verify_attestation_gh(kernel_file_snp, TF_CORE_REPO)
+print(f"Kernel attestation verified for {TF_CORE_REPO} (AMD SNP)")
+
+verify_attestation_gh(initrd_file_snp, TF_CORE_REPO)
+print(f"Initrd attestation verified for {TF_CORE_REPO} (AMD SNP)")
+
+# Get manifest for disk_sha256 (roothash) - no attestation needed, we verified the artifacts
+manifest_snp_url = f"https://github.com/{TF_CORE_REPO}/releases/download/{CVMIMAGE_VERSION}/manifest.json"
+manifest_snp_response = requests.get(manifest_snp_url)
+manifest_snp_response.raise_for_status()
+manifest_snp = json.loads(manifest_snp_response.content)
+
+# Verify manifest matches what we downloaded
 if kernel_hash_snp != manifest_snp["vmlinuz_sha256"]:
     raise ValueError(f"SNP kernel hash mismatch: expected {manifest_snp['vmlinuz_sha256']}, got {kernel_hash_snp}")
 if initrd_hash_snp != manifest_snp["initrd_sha256"]:
@@ -129,11 +99,7 @@ if initrd_hash_snp != manifest_snp["initrd_sha256"]:
 stage0_file = fetch(f"https://github.com/{TF_CORE_REPO}/releases/download/{STAGE0_VERSION}/stage0_bin", CACHE_DIR)
 stage0_digest = sha256sum(stage0_file)
 
-stage0_attestation_url = f"https://api.github.com/repos/{TF_CORE_REPO}/attestations/sha256:{stage0_digest}"
-stage0_attestation_response = requests.get(stage0_attestation_url)
-stage0_attestation_response.raise_for_status()
-
-verify_attestation(stage0_attestation_response.json()["attestations"], TF_CORE_REPO)
+verify_attestation_gh(stage0_file, TF_CORE_REPO)
 print(f"Stage0 attestation verified for {TF_CORE_REPO}")
 
 # Get ACPI hash from platform-measurements release
@@ -162,12 +128,11 @@ measurements_bytes = measurements_response.content
 platform_measurements = json.loads(measurements_bytes)
 
 # Verify attestation for platform-measurements.json
-measurements_digest = sha256sum_bytes(measurements_bytes)
-measurements_attestation_url = f"https://api.github.com/repos/{TF_CORE_REPO}/attestations/sha256:{measurements_digest}"
-measurements_attestation_response = requests.get(measurements_attestation_url)
-measurements_attestation_response.raise_for_status()
+measurements_file = f"{CACHE_DIR}/platform-measurements.json"
+with open(measurements_file, "wb") as f:
+    f.write(measurements_bytes)
 
-verify_attestation(measurements_attestation_response.json()["attestations"], TF_CORE_REPO)
+verify_attestation_gh(measurements_file, TF_CORE_REPO)
 print(f"Platform measurements attestation verified for {TF_CORE_REPO}")
 
 if PLATFORM not in platform_measurements:
