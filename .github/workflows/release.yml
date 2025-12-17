@@ -13,8 +13,9 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
+      pull-requests: write
 
     steps:
       - name: Checkout repository
@@ -43,6 +44,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push Docker image
+        id: build
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -51,3 +53,20 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Update action.yaml with new digest
+        run: |
+          sed -i "s|ghcr.io/tinfoilsh/pri-build-action@sha256:[a-f0-9]*|ghcr.io/tinfoilsh/pri-build-action@${{ steps.build.outputs.digest }}|" action.yaml
+
+      - name: Create PR for digest update
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update docker image digest to ${{ steps.build.outputs.digest }}"
+          title: "Update Docker image digest"
+          body: |
+            Automated digest update from release workflow.
+
+            New digest: `${{ steps.build.outputs.digest }}`
+          branch: update-docker-digest
+          delete-branch: true
