@@ -3,9 +3,32 @@ import json
 import requests
 import yaml
 
+from cryptography.x509.oid import ObjectIdentifier
 from sigstore.verify import Verifier
-from sigstore.verify.policy import AllOf, OIDCIssuer, GitHubWorkflowRepository
+from sigstore.verify.policy import AllOf, OIDCIssuer, GitHubWorkflowRepository, Certificate, ExtensionNotFound
 from sigstore.models import Bundle
+from sigstore.errors import VerificationError
+
+RUNNER_ENVIRONMENT_OID = ObjectIdentifier("1.3.6.1.4.1.57264.1.11")
+
+
+class GitHubHostedRunner:
+    """Verifies the certificate's runner environment is github-hosted."""
+
+    def verify(self, cert: Certificate) -> None:
+        try:
+            ext = cert.extensions.get_extension_for_oid(RUNNER_ENVIRONMENT_OID).value
+            ext_value = ext.value.decode()
+            if ext_value != "github-hosted":
+                raise VerificationError(
+                    f"Certificate's runner environment is not github-hosted "
+                    f"(got '{ext_value}')"
+                )
+        except ExtensionNotFound:
+            raise VerificationError(
+                f"Certificate does not contain runner environment "
+                f"({RUNNER_ENVIRONMENT_OID.dotted_string}) extension"
+            )
 
 from measure_amd import measure_amd
 from measure_intel import measure_intel
@@ -40,6 +63,7 @@ bundle = Bundle.from_json(attestation_bundle_json)
 id_policy = AllOf([
     OIDCIssuer(OIDC_ISSUER),
     GitHubWorkflowRepository(CVMIMAGE_REPO),
+    GitHubHostedRunner(),
 ])
 
 verifier.verify_artifact(artifact=manifest_bytes, bundle=bundle, policy=id_policy)
@@ -71,6 +95,7 @@ ovmf_bundle = Bundle.from_json(ovmf_bundle_json)
 ovmf_policy = AllOf([
     OIDCIssuer(OIDC_ISSUER),
     GitHubWorkflowRepository(EDK2_REPO),
+    GitHubHostedRunner(),
 ])
 
 with open(amd_ovmf, "rb") as f:
