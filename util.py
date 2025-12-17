@@ -14,6 +14,10 @@ def sha256sum(filename: str) -> str:
     return sha256_hash.hexdigest()
 
 
+def sha256sum_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
 def fetch(url: str, cache_dir: str) -> str:
     file_path = os.path.join(
         cache_dir,

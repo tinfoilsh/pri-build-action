@@ -9,6 +9,6 @@ RUN curl -L https://github.com/tinfoilsh/tdx-measure/releases/download/v0.0.6/td
 RUN chmod +x tdx-measure
 
 RUN python3 -m venv /opt/venv && \
-    /opt/venv/bin/pip install --no-cache-dir sev-snp-measure pyyaml requests
+    /opt/venv/bin/pip install --no-cache-dir sev-snp-measure pyyaml requests sigstore
 
 ENTRYPOINT ["/opt/venv/bin/python", "/measure.py"]
