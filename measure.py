@@ -193,7 +193,7 @@ tdx_measurement = measure_intel(CPUS, MEMORY, kernel_file_tdx, initrd_file_tdx, 
 deployment_cfg = {
     "snp_measurement": snp_measurement,
     "tdx_measurement": tdx_measurement,
-    "cmdline": cmdline-tdx,
+    "cmdline": cmdline_tdx,
     "cmdline_snp": cmdline,
     "hashes": manifest,
     "config": base64.b64encode(open("/config.yml", "rb").read()).decode("utf-8"),
