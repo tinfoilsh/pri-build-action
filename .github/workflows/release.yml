@@ -69,4 +69,5 @@ jobs:
 
             New digest: `${{ steps.build.outputs.digest }}`
           branch: update-docker-digest
+          base: main
           delete-branch: true
