@@ -83,17 +83,20 @@ print(f"Kernel attestation verified for {TF_CORE_REPO} (AMD SNP)")
 verify_attestation_gh(initrd_file_snp, TF_CORE_REPO)
 print(f"Initrd attestation verified for {TF_CORE_REPO} (AMD SNP)")
 
-# Get manifest for disk_sha256 (roothash) - no attestation needed, we verified the artifacts
+# Get manifest for root (roothash)
 manifest_snp_url = f"https://github.com/{TF_CORE_REPO}/releases/download/{CVMIMAGE_VERSION}/manifest.json"
 manifest_snp_response = requests.get(manifest_snp_url)
 manifest_snp_response.raise_for_status()
-manifest_snp = json.loads(manifest_snp_response.content)
+manifest_snp_bytes = manifest_snp_response.content 
+manifest_snp = json.loads(manifest_snp_bytes)
 
-# Verify manifest matches what we downloaded
-if kernel_hash_snp != manifest_snp["vmlinuz_sha256"]:
-    raise ValueError(f"SNP kernel hash mismatch: expected {manifest_snp['vmlinuz_sha256']}, got {kernel_hash_snp}")
-if initrd_hash_snp != manifest_snp["initrd_sha256"]:
-    raise ValueError(f"SNP initrd hash mismatch: expected {manifest_snp['initrd_sha256']}, got {initrd_hash_snp}")
+# Save manifest to verify attestation
+manifest_file_snp = f"{CACHE_DIR}/manifest-snp.json"
+with open(manifest_file_snp, "wb") as f:
+    f.write(manifest_snp_bytes)
+
+verify_attestation_gh(manifest_file_snp, TF_CORE_REPO)
+print(f"Manifest attestation verified for {TF_CORE_REPO} (AMD SNP)")
 
 # Download stage0 from tf-core (for AMD SNP)
 stage0_file = fetch(f"https://github.com/{TF_CORE_REPO}/releases/download/{STAGE0_VERSION}/stage0_bin", CACHE_DIR)
@@ -145,7 +148,7 @@ print(f"ACPI hash for {PLATFORM}: {acpi_hash}")
 cmdline_tdx = f"readonly=on pci=realloc,nocrs modprobe.blacklist=nouveau nouveau.modeset=0 root=/dev/mapper/root roothash={manifest['root']} tinfoil-config-hash={sha256sum('/config.yml')}"
 
 # Cmdline for AMD SNP (new cvmimage, with acpi_hash)
-cmdline = f"readonly=on pci=realloc,nocrs modprobe.blacklist=nouveau nouveau.modeset=0 root=/dev/mapper/root roothash={manifest_snp['disk_sha256']} tinfoil-config-hash={sha256sum('/config.yml')} acpi_hash={acpi_hash}"
+cmdline = f"readonly=on pci=realloc,nocrs modprobe.blacklist=nouveau nouveau.modeset=0 root=/dev/mapper/root roothash={manifest_snp['root']} tinfoil-config-hash={sha256sum('/config.yml')} acpi_hash={acpi_hash}"
 
 print("Measuring...")
 
