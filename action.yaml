@@ -28,7 +28,7 @@ runs:
           -v $(pwd)/output:/output \
           -v ${{ inputs.config-file }}:/config.yml \
           -e GH_TOKEN=${{ inputs.github-token }} \
-        ghcr.io/tinfoilsh/pri-build-action@sha256:266fb8910d45112bf6367dcc340dace8fe57f2aa4525ecaf8d7a0445d7936e6a
+        ghcr.io/tinfoilsh/pri-build-action@sha256:3be175d416e5213b64a62501d1ed32b86d3d68fe8080b98bcd2f18ac60b59134
 
     - name: Hash deployment manifest
       shell: bash
