@@ -85,13 +85,17 @@ PLATFORM = config["platform"]
 STAGE0_VERSION = config["stage0-version"]
 CVMIMAGE_VERSION = config["cvmimage-version"]
 
-new_manifest_url = f"https://github.com/{TF_CORE_REPO}/releases/download/{CVMIMAGE_VERSION}/manifest.json"
+# Extract version numbers from tags (e.g., cvmimage-v0.0.5 -> v0.0.5)
+CVMIMAGE_VER = CVMIMAGE_VERSION.replace("cvmimage-", "")
+STAGE0_VER = STAGE0_VERSION.replace("stage0-", "")
+
+new_manifest_url = f"https://github.com/{TF_CORE_REPO}/releases/download/{CVMIMAGE_VERSION}/manifest-{CVMIMAGE_VER}.json"
 new_manifest = fetch_verified_json_artifact(new_manifest_url, TF_CORE_REPO)
 
-# Download kernel/initrd from R2 (uploaded by system-cvmimage workflow)
-new_kernel_file = fetch_verified_artifact("https://images.tinfoil.sh/cvm/tinfoilcvm.vmlinuz", TF_CORE_REPO)
-new_initrd_file = fetch_verified_artifact("https://images.tinfoil.sh/cvm/tinfoilcvm.initrd", TF_CORE_REPO)
-new_stage0_file = fetch_verified_artifact(f"https://github.com/{TF_CORE_REPO}/releases/download/{STAGE0_VERSION}/stage0_bin", TF_CORE_REPO)
+# Download kernel/initrd/stage0 from R2
+new_kernel_file = fetch_verified_artifact(f"https://images.tinfoil.sh/cvm/tinfoilcvm-{CVMIMAGE_VER}.vmlinuz", TF_CORE_REPO)
+new_initrd_file = fetch_verified_artifact(f"https://images.tinfoil.sh/cvm/tinfoilcvm-{CVMIMAGE_VER}.initrd", TF_CORE_REPO)
+new_stage0_file = fetch_verified_artifact(f"https://images.tinfoil.sh/fw/stage0-{STAGE0_VER}.fd", TF_CORE_REPO)
 
 new_kernel_hash = sha256sum(new_kernel_file)
 new_initrd_hash = sha256sum(new_initrd_file)
