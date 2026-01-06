@@ -4,7 +4,7 @@ WORKDIR /app
 COPY *.py /
 RUN mkdir -p /output /cache
 
-RUN apt update && apt install -y curl python3 python3-venv
+RUN apt update && apt install -y ca-certificates curl python3 python3-venv
 
 # Install GitHub CLI for attestation verification
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
