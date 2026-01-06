@@ -19,10 +19,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
 
       - name: Log in to the Container registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -30,7 +30,7 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 #v5.10.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
@@ -41,11 +41,11 @@ jobs:
             type=sha,format=long
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f #v3.12.0
 
       - name: Build and push Docker image
         id: build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 #v6.18.0
         with:
           context: .
           push: true
@@ -59,7 +59,7 @@ jobs:
           sed -i "s|ghcr.io/tinfoilsh/pri-build-action@sha256:[a-f0-9]*|ghcr.io/tinfoilsh/pri-build-action@${{ steps.build.outputs.digest }}|" action.yaml
 
       - name: Create PR for digest update
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@98357b18bf14b5342f975ff684046ec3b2a07725 #v8.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore: update docker image digest to ${{ steps.build.outputs.digest }}"
