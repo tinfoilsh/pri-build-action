@@ -36,15 +36,15 @@ runs:
     - name: Create deployment manifest
       shell: bash
       run: |
-        mkdir -p output cache
         docker run --rm \
-          -u $(id -u):$(id -g) \
-          -e HOME=/tmp \
           -v $(pwd)/output:/output \
-          -v $(pwd)/cache:/cache \
           -v ${{ inputs.config-file }}:/config.yml \
           -e GH_TOKEN=${{ inputs.github-token }} \
         ghcr.io/tinfoilsh/pri-build-action@sha256:1757ead035a9181ccbe6ad23731bf06d96ff2fdc70e7254e12be5b5a0051edd8
+
+    - name: Fix output permissions
+      shell: bash
+      run: sudo chown -R $(id -u):$(id -g) output
 
     - name: Hash deployment manifest
       shell: bash
