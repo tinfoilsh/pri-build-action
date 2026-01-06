@@ -80,6 +80,7 @@ tdx_measurement = measure_intel(CPUS, MEMORY, old_kernel_file, old_initrd_file, 
 
 # === New release format used for AMD SNP ===
 TF_CORE_REPO = "tinfoilsh/tf-core"
+OAK_REPO = "tinfoilsh/oak"
 
 PLATFORM = config["platform"]
 STAGE0_VERSION = config["stage0-version"]
@@ -95,7 +96,7 @@ new_manifest = fetch_verified_json_artifact(new_manifest_url, TF_CORE_REPO)
 # Download kernel/initrd/stage0 from R2
 new_kernel_file = fetch_verified_artifact(f"https://images.tinfoil.sh/cvm/tinfoilcvm-{CVMIMAGE_VER}.vmlinuz", TF_CORE_REPO)
 new_initrd_file = fetch_verified_artifact(f"https://images.tinfoil.sh/cvm/tinfoilcvm-{CVMIMAGE_VER}.initrd", TF_CORE_REPO)
-new_stage0_file = fetch_verified_artifact(f"https://images.tinfoil.sh/fw/stage0-{STAGE0_VER}.fd", TF_CORE_REPO)
+new_stage0_file = fetch_verified_artifact(f"https://images.tinfoil.sh/fw/stage0-{STAGE0_VER}.fd", OAK_REPO)
 
 new_kernel_hash = sha256sum(new_kernel_file)
 new_initrd_hash = sha256sum(new_initrd_file)
@@ -146,7 +147,7 @@ md = f"""## Measurements
 | Component | Version |
 |-----------|---------|
 | CVM Image | [`{CVMIMAGE_VERSION}`](https://github.com/tinfoilsh/tf-core/releases/tag/{CVMIMAGE_VERSION}) |
-| Firmware (stage0) | [`{STAGE0_VERSION}`](https://github.com/tinfoilsh/tf-core/releases/tag/{STAGE0_VERSION}) |
+| Firmware (stage0) | [`{STAGE0_VERSION}`](https://github.com/tinfoilsh/oak/releases/tag/{STAGE0_VERSION}) |
 | Platform Measurements | [`{plt_msr_release}`](https://github.com/tinfoilsh/tf-core/releases/tag/{plt_msr_release}) |
 | Legacy CVM Image (TDX) | [`{CVM_VERSION}`](https://github.com/tinfoilsh/cvmimage/releases/tag/v{CVM_VERSION}) |
 
