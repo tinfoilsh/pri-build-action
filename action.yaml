@@ -36,8 +36,11 @@ runs:
     - name: Create deployment manifest
       shell: bash
       run: |
+        mkdir -p output cache
         docker run --rm \
+          -u $(id -u):$(id -g) \
           -v $(pwd)/output:/output \
+          -v $(pwd)/cache:/cache \
           -v ${{ inputs.config-file }}:/config.yml \
           -e GH_TOKEN=${{ inputs.github-token }} \
         ghcr.io/tinfoilsh/pri-build-action@sha256:982805d8b74a22b5afbe394af2fb5b1f9c486776b23f3ca4766d9615aa24f7f9
@@ -46,7 +49,7 @@ runs:
       shell: bash
       id: hash
       run: |
-        echo stdout=sha256:$(sudo sha256sum output/tinfoil-deployment.json | cut -d ' ' -f 1 | sudo tee output/tinfoil.hash) >> $GITHUB_OUTPUT
+        echo stdout=sha256:$(sha256sum output/tinfoil-deployment.json | cut -d ' ' -f 1 | tee output/tinfoil.hash) >> $GITHUB_OUTPUT
 
     - name: Attest
       uses: actions/attest@7667f588f2f73a90cea6c7ac70e78266c4f76616 #v3.1.0
