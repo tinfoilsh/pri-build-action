@@ -120,18 +120,20 @@ jobs:
                 break
               fi
               if [ "$i" -eq 30 ]; then
-                echo "::warning::Timed out waiting for auto-merge. Merge the PR manually, then run release.yml with version=${VERSION} and digest=${DIGEST}."
+                echo "::error::Timed out waiting for auto-merge. Merge the PR manually, then run: gh workflow run release.yml -f version=${VERSION} -f digest=${DIGEST}"
                 echo "merged=false" >> $GITHUB_OUTPUT
+                exit 1
               fi
               sleep 20
             done
           else
-            echo "::warning::Could not merge PR automatically. Merge it manually, then run release.yml with version=${VERSION} and digest=${DIGEST}."
+            echo "::error::Could not merge PR automatically. Merge it manually, then run: gh workflow run release.yml -f version=${VERSION} -f digest=${DIGEST}"
             echo "merged=false" >> $GITHUB_OUTPUT
+            exit 1
           fi
 
       - name: Trigger release workflow
-        if: steps.merge.outputs.merged == 'true'
+        if: always() && steps.merge.outputs.merged == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.version.outputs.version }}
