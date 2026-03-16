@@ -26,7 +26,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
-          ref: main
+          ref: ${{ github.sha }}
 
       - name: Extract version from tag
         id: version
@@ -73,12 +73,13 @@ jobs:
           push-to-registry: true
 
       - name: Create and merge digest update PR
+        id: merge
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+          DIGEST: ${{ steps.build.outputs.digest }}
         shell: bash
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          DIGEST="${{ steps.build.outputs.digest }}"
           BRANCH="digest-update/${VERSION}"
 
           sed -i "s|ghcr.io/tinfoilsh/pri-build-action@sha256:[a-f0-9]*|ghcr.io/tinfoilsh/pri-build-action@${DIGEST}|" action.yaml
@@ -108,33 +109,35 @@ jobs:
           # Try direct merge first, then fall back to auto-merge
           if gh pr merge "${PR_URL}" --rebase; then
             echo "PR merged directly"
+            echo "merged=true" >> $GITHUB_OUTPUT
           elif gh pr merge "${PR_URL}" --auto --rebase; then
             echo "Auto-merge enabled, waiting for merge..."
             for i in $(seq 1 30); do
               STATE=$(gh pr view "${PR_URL}" --json state -q .state)
               if [ "${STATE}" = "MERGED" ]; then
                 echo "PR merged"
+                echo "merged=true" >> $GITHUB_OUTPUT
                 break
               fi
               if [ "$i" -eq 30 ]; then
-                echo "::warning::Timed out waiting for auto-merge. Merge the PR manually to trigger the release."
-                exit 0
+                echo "::warning::Timed out waiting for auto-merge. Merge the PR manually, then run release.yml with version=${VERSION} and digest=${DIGEST}."
+                echo "merged=false" >> $GITHUB_OUTPUT
               fi
               sleep 20
             done
           else
-            echo "::warning::Could not merge PR automatically. Merge it manually to trigger the release."
-            exit 0
+            echo "::warning::Could not merge PR automatically. Merge it manually, then run release.yml with version=${VERSION} and digest=${DIGEST}."
+            echo "merged=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Trigger release workflow
+        if: steps.merge.outputs.merged == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+          DIGEST: ${{ steps.build.outputs.digest }}
         shell: bash
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          DIGEST="${{ steps.build.outputs.digest }}"
-
           gh workflow run release.yml \
             --ref main \
             -f version="${VERSION}" \
