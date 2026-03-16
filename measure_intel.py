@@ -1,5 +1,7 @@
-import os
 import json
+import subprocess
+import tempfile
+import os
 
 def measure_intel(
     num_cpus: int,
@@ -24,11 +26,24 @@ def measure_intel(
             "cmdline": cmdline,
         }
     }
-    with open("metadata.json", "w") as f:
+
+    workdir = tempfile.mkdtemp()
+    metadata_path = os.path.join(workdir, "metadata.json")
+    measurement_path = os.path.join(workdir, "measurement.json")
+
+    with open(metadata_path, "w") as f:
         json.dump(tdx_metadata, f)
 
-    tdx_measure_cmd = f"/app/tdx-measure metadata.json --runtime-only --cpu {num_cpus} --memory {mem_m}G --direct-boot=true --json-file measurement.json"
-    print(tdx_measure_cmd)
-    os.system(tdx_measure_cmd)
-    with open("measurement.json", "r") as f:
+    tdx_measure_cmd = [
+        "/app/tdx-measure",
+        metadata_path,
+        "--runtime-only",
+        "--cpu", str(num_cpus),
+        "--memory", f"{mem_m}G",
+        "--direct-boot=true",
+        "--json-file", measurement_path
+    ]
+    print(" ".join(tdx_measure_cmd))
+    subprocess.run(tdx_measure_cmd, check=True)
+    with open(measurement_path, "r") as f:
         return json.load(f)

@@ -1,73 +1,67 @@
-name: Build and Push Docker Image
+name: Release
 
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (e.g., v1.0.0)"
+        required: true
+      digest:
+        description: "Container image digest"
+        required: true
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+permissions: {}
 
 jobs:
-  build-and-push:
+  release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      packages: write
-      pull-requests: write
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Log in to the Container registry
-        uses: docker/login-action@v3
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          ref: main
 
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,format=long
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push Docker image
-        id: build
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Update action.yaml with new digest
+      - name: Validate inputs
+        shell: bash
         run: |
-          sed -i "s|ghcr.io/tinfoilsh/pri-build-action@sha256:[a-f0-9]*|ghcr.io/tinfoilsh/pri-build-action@${{ steps.build.outputs.digest }}|" action.yaml
+          VERSION="${{ inputs.version }}"
+          if [[ ! "${VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid version format: ${VERSION} (expected vX.Y.Z)"
+            exit 1
+          fi
 
-      - name: Create PR for digest update
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "chore: update docker image digest to ${{ steps.build.outputs.digest }}"
-          title: "Update Docker image digest"
-          body: |
-            Automated digest update from release workflow.
+          if git rev-parse "${VERSION}" >/dev/null 2>&1; then
+            echo "::error::Tag ${VERSION} already exists"
+            exit 1
+          fi
 
-            New digest: `${{ steps.build.outputs.digest }}`
-          branch: update-docker-digest
-          base: main
-          delete-branch: true
+          echo "Releasing ${VERSION}"
+
+      - name: Create tag and release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          VERSION="${{ inputs.version }}"
+          DIGEST="${{ inputs.digest }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          COMMIT_SHA=$(git rev-parse HEAD)
+
+          git tag "${VERSION}"
+          git push origin "${VERSION}"
+
+          gh release create "${VERSION}" \
+            --repo "${{ github.repository }}" \
+            --title "${VERSION}" \
+            --notes "Container digest: \`${DIGEST}\`
+
+          **Usage (pin by commit SHA):**
+          \`\`\`yaml
+          - uses: tinfoilsh/pri-build-action@${COMMIT_SHA}  # ${VERSION}
+          \`\`\`"
