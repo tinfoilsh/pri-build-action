@@ -40,7 +40,7 @@ jobs:
             exit 1
           fi
 
-          ACTUAL_DIGEST=$(grep -oP 'sha256:[a-f0-9]+' action.yaml | head -1)
+          ACTUAL_DIGEST=$(grep -oP 'pri-build-action@\Ksha256:[a-f0-9]+' action.yaml)
           if [ "${ACTUAL_DIGEST}" != "${DIGEST}" ]; then
             echo "::error::Digest mismatch! action.yaml has ${ACTUAL_DIGEST} but expected ${DIGEST}. Was the digest update PR merged?"
             exit 1
