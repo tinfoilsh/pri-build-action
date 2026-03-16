@@ -1,7 +1,6 @@
 import hashlib
 import os
-import shutil
-import requests
+import subprocess
 
 
 def sha256sum(filename: str) -> str:
@@ -12,10 +11,6 @@ def sha256sum(filename: str) -> str:
             sha256_hash.update(chunk)
 
     return sha256_hash.hexdigest()
-
-
-def sha256sum_bytes(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
 
 
 def fetch(url: str, cache_dir: str) -> str:
@@ -34,12 +29,9 @@ def fetch(url: str, cache_dir: str) -> str:
     )
 
     print(f"Fetching {url}...")
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    }
-    response = requests.get(url, headers=headers, stream=True)
-    response.raise_for_status()
-    with open(file_path, 'wb') as out_file:
-        shutil.copyfileobj(response.raw, out_file)
+    subprocess.run(
+        ["curl", "-fSL", "--retry", "3", "-o", file_path, url],
+        check=True,
+    )
 
     return file_path

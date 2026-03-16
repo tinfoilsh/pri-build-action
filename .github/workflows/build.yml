@@ -1,0 +1,143 @@
+name: Build Container
+
+on:
+  push:
+    tags:
+      - "build-v*"
+
+permissions: {}
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      pull-requests: write
+      actions: write
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
+        with:
+          ref: main
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION="${GITHUB_REF_NAME#build-}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Building container for ${VERSION}"
+
+      - name: Log in to Container registry
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 #v5.10.0
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=sha,format=long
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f #v3.12.0
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 #v6.18.0
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Attest container image
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a  # v3.0.0
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Create and merge digest update PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          DIGEST="${{ steps.build.outputs.digest }}"
+          BRANCH="digest-update/${VERSION}"
+
+          sed -i "s|ghcr.io/tinfoilsh/pri-build-action@sha256:[a-f0-9]*|ghcr.io/tinfoilsh/pri-build-action@${DIGEST}|" action.yaml
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git checkout -B "${BRANCH}"
+          git add action.yaml
+          git commit -m "chore: update container digest for ${VERSION}
+
+          Container digest: ${DIGEST}"
+          git push -f origin "${BRANCH}"
+
+          PR_URL=$(gh pr create \
+            --title "release: ${VERSION}" \
+            --body "Automated container digest update.
+
+          Container digest: \`${DIGEST}\`
+
+          This PR will be auto-merged. Once merged, the release workflow will create the \`${VERSION}\` tag and GitHub Release." \
+            --base main \
+            --head "${BRANCH}")
+
+          echo "PR created: ${PR_URL}"
+
+          # Try direct merge first, then fall back to auto-merge
+          if gh pr merge "${PR_URL}" --rebase; then
+            echo "PR merged directly"
+          elif gh pr merge "${PR_URL}" --auto --rebase; then
+            echo "Auto-merge enabled, waiting for merge..."
+            for i in $(seq 1 30); do
+              STATE=$(gh pr view "${PR_URL}" --json state -q .state)
+              if [ "${STATE}" = "MERGED" ]; then
+                echo "PR merged"
+                break
+              fi
+              if [ "$i" -eq 30 ]; then
+                echo "::warning::Timed out waiting for auto-merge. Merge the PR manually to trigger the release."
+                exit 0
+              fi
+              sleep 20
+            done
+          else
+            echo "::warning::Could not merge PR automatically. Merge it manually to trigger the release."
+            exit 0
+          fi
+
+      - name: Trigger release workflow
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          DIGEST="${{ steps.build.outputs.digest }}"
+
+          gh workflow run release.yml \
+            --ref main \
+            -f version="${VERSION}" \
+            -f digest="${DIGEST}"
+
+          echo "Release workflow triggered for ${VERSION}"
