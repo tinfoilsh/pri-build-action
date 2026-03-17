@@ -107,6 +107,6 @@ jobs:
 
           echo "PR created: ${PR_URL}"
 
-          gh pr merge "${PR_URL}" --rebase || \
-            gh pr merge "${PR_URL}" --auto --rebase || \
+          gh pr merge "${PR_URL}" --rebase --delete-branch || \
+            gh pr merge "${PR_URL}" --auto --rebase --delete-branch || \
             echo "::warning::Could not auto-merge README update PR. Merge it manually: ${PR_URL}"
