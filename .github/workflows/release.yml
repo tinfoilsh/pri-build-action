@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
 
     steps:
       - name: Checkout repository
@@ -72,3 +73,40 @@ jobs:
           \`\`\`yaml
           - uses: tinfoilsh/measure-image-action@${COMMIT_SHA}  # ${VERSION}
           \`\`\`"
+
+      - name: Update README with pinned SHA
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          COMMIT_SHA=$(git rev-parse HEAD)
+          BRANCH="readme-update/${VERSION}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git checkout -B "${BRANCH}"
+
+          sed -i -E "s|measure-image-action@[a-f0-9]{40}[^\"]*|measure-image-action@${COMMIT_SHA}  # ${VERSION}|g" README.md
+
+          if git diff --quiet README.md; then
+            echo "README already up to date"
+            exit 0
+          fi
+
+          git add README.md
+          git commit -m "chore: update action in README to ${VERSION} (${COMMIT_SHA})"
+          git push -f origin "${BRANCH}"
+
+          PR_URL=$(gh pr create \
+            --title "chore: update action in README to ${VERSION}" \
+            --body "Automated update of the pinned commit SHA in README.md after release ${VERSION}." \
+            --base main \
+            --head "${BRANCH}")
+
+          echo "PR created: ${PR_URL}"
+
+          gh pr merge "${PR_URL}" --rebase || \
+            gh pr merge "${PR_URL}" --auto --rebase || \
+            echo "::warning::Could not auto-merge README update PR. Merge it manually: ${PR_URL}"
