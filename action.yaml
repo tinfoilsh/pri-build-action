@@ -42,6 +42,7 @@ runs:
           --read-only \
           --tmpfs /tmp \
           --tmpfs /cache \
+          --tmpfs /root/.cache \
           -v "$(pwd)/output":/output \
           -v "${{ inputs.config-file }}":/config.yml:ro \
           -e GH_TOKEN=${{ inputs.github-token }} \

@@ -63,7 +63,7 @@ if initrd_hash != manifest["initrd"]:
 EDK2_REPO = "tinfoilsh/edk2"
 EDK2_VERSION = "v0.0.3"
 
-amd_ovmf = fetch_verified_artifact(f"https://github.com/{EDK2_REPO}/releases/download/{EDK2_VERSION}/OVMF.fd", EDK2_REPO)
+amd_ovmf = fetch(f"https://github.com/{EDK2_REPO}/releases/download/{EDK2_VERSION}/OVMF.fd", CACHE_DIR)
 
 cmdline = f"readonly=on pci=realloc,nocrs modprobe.blacklist=nouveau nouveau.modeset=0 root=/dev/mapper/root roothash={manifest['root']} tinfoil-config-hash={sha256sum('/config.yml')}"
 
