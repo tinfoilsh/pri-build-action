@@ -35,15 +35,3 @@ Push a `build-v*` tag to trigger the automated pipeline:
 git tag build-v0.0.13
 git push origin build-v0.0.13
 ```
-
-This will:
-1. Build and push the container image to ghcr.io
-2. Update `action.yaml` with the new container digest
-3. Commit the digest update to `main`
-4. Create a `v0.0.13` release tag on the commit with the correct digest
-5. Create a GitHub Release
-
-Downstream users can then pin to the new version:
-```yaml
-- uses: tinfoilsh/measure-image-action@v0.0.13
-```
