@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
-      - uses: tinfoilsh/pri-build-action@<COMMIT_SHA>  # pin to latest release tag commit
+      - uses: tinfoilsh/measure-image-action@<COMMIT_SHA>  # pin to latest release tag commit
         with:
           config-file: ${{ github.workspace }}/tinfoil-config.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -45,5 +45,5 @@ This will:
 
 Downstream users can then pin to the new version:
 ```yaml
-- uses: tinfoilsh/pri-build-action@v0.0.13
+- uses: tinfoilsh/measure-image-action@v0.0.13
 ```

@@ -82,7 +82,7 @@ jobs:
         run: |
           BRANCH="digest-update/${VERSION}"
 
-          sed -i "s|ghcr.io/tinfoilsh/pri-build-action@sha256:[a-f0-9]*|ghcr.io/tinfoilsh/pri-build-action@${DIGEST}|" action.yaml
+          sed -i "s|ghcr.io/tinfoilsh/measure-image-action@sha256:[a-f0-9]*|ghcr.io/tinfoilsh/measure-image-action@${DIGEST}|" action.yaml
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
