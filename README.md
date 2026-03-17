@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
-      - uses: tinfoilsh/measure-image-action@a2029deb5bc01e5ad2c66f7782eab407b7636e00  # v0.6.4
+      - uses: tinfoilsh/measure-image-action@3da94683ca554ddeac40476289cf5e95414cfbd9  # v0.6.5
         with:
           config-file: ${{ github.workspace }}/tinfoil-config.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
