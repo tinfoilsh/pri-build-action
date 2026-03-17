@@ -93,6 +93,7 @@ runs:
         fi
 
         gh release create "$RELEASE_REF" \
+          --verify-tag \
           -R "$REPO" \
           --title "$RELEASE_REF" \
           --notes-file output/release-notes.md \
