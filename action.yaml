@@ -45,7 +45,7 @@ runs:
           -v "$(pwd)/output":/output \
           -v "${{ inputs.config-file }}":/config.yml:ro \
           -e GH_TOKEN=${{ inputs.github-token }} \
-        ghcr.io/tinfoilsh/pri-build-action@sha256:266fb8910d45112bf6367dcc340dace8fe57f2aa4525ecaf8d7a0445d7936e6a
+        ghcr.io/tinfoilsh/pri-build-action@sha256:051a24ae1aa64e7f442106291bf429f823235204fd489678ebb29f356a5beb49
 
     - name: Fix output permissions
       shell: bash
