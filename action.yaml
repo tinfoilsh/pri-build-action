@@ -14,6 +14,10 @@ inputs:
     description: "Mark the GitHub release as the latest (default: not marked as latest)"
     required: false
     default: "false"
+  release-ref:
+    description: "Git tag used as the release name and title (default: github.ref_name)"
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -85,9 +89,9 @@ runs:
           LATEST_FLAG="--latest=true"
         fi
         
-        gh release create "${{ github.ref_name }}" \
+        gh release create "${{ inputs.release-ref || github.ref_name }}" \
           -R ${{ github.repository }} \
-          --title "${{ github.ref_name }}" \
+          --title "${{ inputs.release-ref || github.ref_name }}" \
           --notes-file output/release-notes.md \
           $LATEST_FLAG \
           output/tinfoil-deployment.json \
