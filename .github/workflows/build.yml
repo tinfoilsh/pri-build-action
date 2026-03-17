@@ -107,10 +107,10 @@ jobs:
           echo "PR created: ${PR_URL}"
 
           # Try direct merge first, then fall back to auto-merge
-          if gh pr merge "${PR_URL}" --rebase; then
+          if gh pr merge "${PR_URL}" --rebase --delete-branch; then
             echo "PR merged directly"
             echo "merged=true" >> $GITHUB_OUTPUT
-          elif gh pr merge "${PR_URL}" --auto --rebase; then
+          elif gh pr merge "${PR_URL}" --auto --rebase --delete-branch; then
             echo "Auto-merge enabled, waiting for merge..."
             for i in $(seq 1 30); do
               STATE=$(gh pr view "${PR_URL}" --json state -q .state)
