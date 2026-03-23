@@ -14,10 +14,6 @@ inputs:
     description: "Mark the GitHub release as the latest (default: not marked as latest)"
     required: false
     default: "false"
-  release-ref:
-    description: "Git tag used as the release name and title (default: github.ref_name)"
-    required: false
-    default: ""
 
 runs:
   using: "composite"
@@ -83,7 +79,7 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
-        RELEASE_REF: ${{ inputs.release-ref || github.ref_name }}
+        RELEASE_REF: ${{ github.ref_name }}
         MARK_AS_LATEST: ${{ inputs.mark-as-latest }}
         REPO: ${{ github.repository }}
       run: |
