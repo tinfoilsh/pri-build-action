@@ -18,6 +18,26 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Precondition checks
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        GH_REPO: ${{ github.repository }}
+        REF_TYPE: ${{ github.ref_type }}
+        REF_NAME: ${{ github.ref_name }}
+      run: |
+        # Check that the action is being run from a tag
+        if [ "$REF_TYPE" != "tag" ]; then
+          echo "::error::measure-image-action must be run on a release tag, but this run is on $REF_TYPE '$REF_NAME'. Check how you are triggering this action."
+          exit 1
+        fi
+
+        # Check that the release does not already exist
+        if gh release view "$REF_NAME" >/dev/null 2>&1; then
+          echo "::error::Release $REF_NAME already exists — refusing to re-publish."
+          exit 1
+        fi
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f #v3.12.0
 
